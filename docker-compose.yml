@@ -1,0 +1,23 @@
+version: '3.9'
+
+networks:
+  test_network:
+    driver: bridge
+
+services:
+  db:
+    networks:
+    - test_network
+    image: postgres
+    restart: always
+    environment:
+       POSTGRES_PASSWORD: carttt
+       POSTGRES_DB: CartProducts
+       POSTGRES_USER: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  db_data:
