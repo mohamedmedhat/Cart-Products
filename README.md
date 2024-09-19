@@ -32,6 +32,19 @@
 $ yarn install
 ```
 
+## Make app ready to run
+
+```bash
+# docker
+$ docker-compose up -d
+
+# generate migartion
+$ yarn run migration:generate
+
+# run migration
+$ yarn run migration:run
+```
+
 ## Running the app
 
 ```bash
