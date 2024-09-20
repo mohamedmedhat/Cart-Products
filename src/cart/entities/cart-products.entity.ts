@@ -1,22 +1,29 @@
 import { Field, Float, ID, Int, ObjectType } from '@nestjs/graphql';
-import { IsDate } from 'class-validator';
+import { Product } from 'src/product/entities/product.entity';
 import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
   BeforeInsert,
   BeforeUpdate,
+  Column,
   CreateDateColumn,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm';
+import { Cart } from './cart.entity';
+import { IsDate } from 'class-validator';
 
 @ObjectType()
-@Entity('products')
-export class Product {
+@Entity({ name: 'cart_products' })
+export class CartProduct extends Product {
   @Field(() => ID)
   @PrimaryGeneratedColumn()
   id: number;
+
+  @Field(() => Cart)
+  @ManyToOne(() => Cart, (cart) => cart.cartProducts)
+  cart: Cart;
 
   @Field(() => String)
   @Column({ type: 'varchar', nullable: true })

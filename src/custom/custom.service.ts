@@ -32,4 +32,17 @@ export class CustomQueries {
       skip: (page - 1) * pageSize,
     });
   }
+
+  async findItemsWithOutPagination<T>(
+    repo: Repository<T>,
+    where?: FindOptionsWhere<T>,
+    order?: FindOptionsOrder<T>,
+    relations: string[] = [],
+  ): Promise<T[]> {
+    return await repo.find({
+      where,
+      order,
+      relations,
+    });
+  }
 }

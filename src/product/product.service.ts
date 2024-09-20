@@ -7,13 +7,15 @@ import {
   FindOptionsWhere,
   IsNull,
   LessThan,
-  MoreThanOrEqual,
+  MoreThan,
   Not,
   Repository,
 } from 'typeorm';
 import { CreateProductDto } from './dto/create_product.dto';
 import { CustomQueries } from 'src/custom/custom.service';
 import { ErrorService } from 'src/custom/errors.service';
+import { PaginationConst } from 'src/consts/variables.consts';
+import { CartProductService } from 'src/cart/cart-product.service';
 
 @Injectable()
 export class ProductService {
@@ -21,8 +23,22 @@ export class ProductService {
     @InjectRepository(Product)
     private readonly _productRepo: Repository<Product>,
     private readonly _customQuery: CustomQueries,
+    private readonly _cartProductService: CartProductService,
     private readonly _errorService: ErrorService,
   ) {}
+
+  async IncreaseProductQuantity(quantity: number, product: Product) {
+    product.quantity += quantity;
+    await this._productRepo.save(product);
+  }
+
+  async decreaseProductQuantity(quantity: number, product: Product) {
+    if (product.quantity < quantity) {
+      throw new Error('Not enough stock available');
+    }
+    product.quantity -= quantity;
+    await this._productRepo.save(product);
+  }
 
   async findProduct(
     where?: FindOptionsWhere<Product>,
@@ -38,8 +54,8 @@ export class ProductService {
   }
 
   async findProducts(
-    page: number = 1,
-    pageSize: number = 9,
+    page: number = PaginationConst.DEFAULT_PAGE,
+    pageSize: number = PaginationConst.DEFAULT_PAGE_SIZE,
     where?: FindOptionsWhere<Product>,
     order?: FindOptionsOrder<Product>,
     relations: string[] = [],
@@ -55,7 +71,7 @@ export class ProductService {
       );
       return [products, total];
     } catch (error) {
-      this._errorService.failedToFindProducts(error);
+      throw this._errorService.failedToFindProducts(error);
     }
   }
 
@@ -78,8 +94,22 @@ export class ProductService {
       const newProduct = await this.addProduct(data, imageUrl);
       return await this._productRepo.save(newProduct);
     } catch (error) {
-      this._errorService.failedToCreateProduct(error);
+      throw this._errorService.failedToCreateProduct(error);
     }
+  }
+
+  async updateProductData(
+    product: Product,
+    imageUrl: string,
+    data: CreateProductDto,
+  ): Promise<Product> {
+    product.name = data.name;
+    product.price = parseFloat(data.price);
+    product.sale_price = parseFloat(data.sale_price);
+    product.imageUrl = imageUrl;
+    product.quantity = parseInt(data.quantity);
+    product.updated_at = new Date();
+    return product;
   }
 
   async updateProduct(
@@ -88,24 +118,33 @@ export class ProductService {
     data: CreateProductDto,
   ): Promise<Product> {
     try {
-      const product = await this.findProduct({ id: productId });
-      if (!product) {
-        throw new Error(`Product with id ${productId} not found.`);
-      }
-      Object.assign(product, { ...data, imageUrl });
-      return await this._productRepo.save(product);
+      const product = await this.findProductById(productId);
+      const originalName = product.name;
+      const updatedProduct = await this.updateProductData(
+        product,
+        imageUrl,
+        data,
+      );
+      await this._cartProductService.updateAllCartProductsWithName(
+        originalName,
+        updatedProduct,
+      );
+      return await this._productRepo.save(updatedProduct);
     } catch (error) {
-      this._errorService.failedToUpdateProduct(productId, error);
+      throw this._errorService.failedToUpdateProduct(productId, error);
     }
   }
 
   async removeProduct(productId: number): Promise<[Product[], number]> {
     try {
       const product = await this.findProductById(productId);
-      await this._productRepo.remove(product);
+      await Promise.all([
+        this._cartProductService.deleteAllCartProductsWithName(product.name),
+        this._productRepo.remove(product),
+      ]);
       return await this.getAllProducts();
     } catch (error) {
-      this._errorService.failedToDeleteProduct(productId, error);
+      throw this._errorService.failedToDeleteProduct(productId, error);
     }
   }
 
@@ -113,50 +152,52 @@ export class ProductService {
     try {
       return await this.findProduct({ id: productId }, undefined, undefined);
     } catch (error) {
-      this._errorService.failedToGetProductById(productId, error);
+      throw this._errorService.failedToGetProductById(productId, error);
     }
   }
 
   async getAllProducts(
-    page: number = 1,
-    pageSize: number = 9,
+    page: number = PaginationConst.DEFAULT_PAGE,
+    pageSize: number = PaginationConst.DEFAULT_PAGE_SIZE,
   ): Promise<[Product[], number]> {
     try {
       return await this.findProducts(page, pageSize, undefined, undefined);
     } catch (error) {
-      this._errorService.failedGetAllProducts(error);
+      throw this._errorService.failedGetAllProducts(error);
     }
   }
 
-  async filterProductsByHighestPrice(
-    page: number = 1,
-    pageSize: number = 9,
+  async filterByPriceOrder(
+    page: number = PaginationConst.DEFAULT_PAGE,
+    pageSize: number = PaginationConst.DEFAULT_PAGE_SIZE,
+    price: 'DESC' | 'ASC',
   ): Promise<[Product[], number]> {
     return await this.findProducts(
       page,
       pageSize,
       undefined,
-      { price: 'DESC' },
+      { price },
       undefined,
     );
+  }
+
+  async filterProductsByHighestPrice(
+    page: number = PaginationConst.DEFAULT_PAGE,
+    pageSize: number = PaginationConst.DEFAULT_PAGE_SIZE,
+  ): Promise<[Product[], number]> {
+    return await this.filterByPriceOrder(page, pageSize, 'DESC');
   }
 
   async filterProductsByLowestPrice(
-    page: number = 1,
-    pageSize: number = 9,
+    page: number = PaginationConst.DEFAULT_PAGE,
+    pageSize: number = PaginationConst.DEFAULT_PAGE_SIZE,
   ): Promise<[Product[], number]> {
-    return await this.findProducts(
-      page,
-      pageSize,
-      undefined,
-      { price: 'ASC' },
-      undefined,
-    );
+    return await this.filterByPriceOrder(page, pageSize, 'ASC');
   }
 
   async filterProductsAvailableSalePrice(
-    page: number = 1,
-    pageSize: number = 9,
+    page: number = PaginationConst.DEFAULT_PAGE,
+    pageSize: number = PaginationConst.DEFAULT_PAGE_SIZE,
   ): Promise<[Product[], number]> {
     return await this.findProducts(
       page,
@@ -167,42 +208,38 @@ export class ProductService {
     );
   }
 
-  async filterProductsWherePriceLessThanOneHundered(
-    page: number = 1,
-    pageSize: number = 9,
+  async filterByPriceStatus(
+    page: number = PaginationConst.DEFAULT_PAGE,
+    pageSize: number = PaginationConst.DEFAULT_PAGE_SIZE,
+    where: FindOptionsWhere<Product>,
   ): Promise<[Product[], number]> {
-    return await this.findProducts(
-      page,
-      pageSize,
-      { price: LessThan(100.0) },
-      undefined,
-      undefined,
-    );
+    return await this.findProducts(page, pageSize, where, undefined, undefined);
+  }
+
+  async filterProductsWherePriceLessThanOneHundered(
+    page: number = PaginationConst.DEFAULT_PAGE,
+    pageSize: number = PaginationConst.DEFAULT_PAGE_SIZE,
+  ): Promise<[Product[], number]> {
+    return await this.filterByPriceStatus(page, pageSize, {
+      price: LessThan(100.0),
+    });
   }
 
   async filterProductsWherePriceBetweenOneHunderedAndOneThousand(
-    page: number = 1,
-    pageSize: number = 9,
+    page: number = PaginationConst.DEFAULT_PAGE,
+    pageSize: number = PaginationConst.DEFAULT_PAGE_SIZE,
   ): Promise<[Product[], number]> {
-    return await this.findProducts(
-      page,
-      pageSize,
-      { price: Between(100.0, 1000.0) },
-      { price: 'ASC' },
-      undefined,
-    );
+    return await this.filterByPriceStatus(page, pageSize, {
+      price: Between(100.0, 1000.0),
+    });
   }
 
   async filterProductsWherePriceMoreThanOneThousand(
-    page: number = 1,
-    pageSize: number = 9,
+    page: number = PaginationConst.DEFAULT_PAGE,
+    pageSize: number = PaginationConst.DEFAULT_PAGE_SIZE,
   ): Promise<[Product[], number]> {
-    return await this.findProducts(
-      page,
-      pageSize,
-      { price: MoreThanOrEqual(1000.0) },
-      { price: 'ASC' },
-      undefined,
-    );
+    return await this.filterByPriceStatus(page, pageSize, {
+      price: MoreThan(1000.0),
+    });
   }
 }

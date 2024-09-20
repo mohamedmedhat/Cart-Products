@@ -1,6 +1,5 @@
 import { ObjectType, Field, Int, ID, Float } from '@nestjs/graphql';
 import { IsDate } from 'class-validator';
-import { Product } from 'src/product/entities/product.entity';
 import {
   BeforeInsert,
   BeforeUpdate,
@@ -11,6 +10,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm';
+import { CartProduct } from './cart-products.entity';
 
 @ObjectType()
 @Entity({ name: 'carts' })
@@ -19,9 +19,9 @@ export class Cart {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Field(() => [Product])
-  @OneToMany(() => Product, (product) => product.cart, { cascade: true })
-  products: Product[];
+  @Field(() => [CartProduct])
+  @OneToMany(() => CartProduct, (product) => product.cart, { cascade: true })
+  cartProducts: CartProduct[];
 
   @Field(() => Float)
   @VersionColumn()
