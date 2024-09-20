@@ -32,7 +32,7 @@ export class CartService {
       const cart = this._cartRepo.create();
       return this._cartRepo.save(cart);
     } catch (error) {
-      this._errorService.failedCreateCart(error);
+      throw this._errorService.failedCreateCart(error);
     }
   }
 
@@ -48,7 +48,7 @@ export class CartService {
       }
       return total;
     } catch (error) {
-      this._errorService.failedCalcTotalPricesInCart(error);
+      throw this._errorService.failedCalcTotalPricesInCart(error);
     }
   }
 
@@ -65,7 +65,7 @@ export class CartService {
         relations,
       );
     } catch (error) {
-      this._errorService.failedToFindProduct(cartId);
+      throw this._errorService.failedToFindProduct(cartId);
     }
   }
 
@@ -80,7 +80,7 @@ export class CartService {
       }
       return cart;
     } catch (error) {
-      this._errorService.failedToFindProduct(cartId);
+      throw this._errorService.failedToFindProduct(cartId);
     }
   }
 

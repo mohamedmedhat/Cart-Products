@@ -8,7 +8,7 @@ export class ErrorService {
     );
   }
 
-  async failedToUpdateProduct(id: number,error: Error): Promise<void> {
+  async failedToUpdateProduct(id: number, error: Error): Promise<void> {
     throw new BadRequestException(
       `failed to update product: ${id}, Reason: ${error.message}`,
     );
@@ -20,7 +20,6 @@ export class ErrorService {
     );
   }
 
-  
   async failedToGetProductById(id: number, error: Error): Promise<void> {
     throw new BadRequestException(
       `failed to get product: ${id}, Reason: ${error.message}`,
@@ -36,7 +35,9 @@ export class ErrorService {
   }
 
   async failedGetAllProducts(error: Error): Promise<void> {
-    throw new BadRequestException(`failed to find get all products, Reason: ${error}`);
+    throw new BadRequestException(
+      `failed to find get all products, Reason: ${error}`,
+    );
   }
 
   async failedToDeleteProductFromCart(error: Error): Promise<void> {
@@ -76,6 +77,24 @@ export class ErrorService {
   async failedCreateCart(error: Error): Promise<void> {
     throw new BadRequestException(
       `failed to create cart, Reason: ${error.message}`,
+    );
+  }
+
+  async findCartProductById(error: Error): Promise<void> {
+    throw new BadRequestException(
+      `failed to find cart product by id, Reason: ${error.message}`,
+    );
+  }
+
+  async deleteCartProduct(error: Error): Promise<void> {
+    throw new BadRequestException(
+      `failed to delete cart product, Reason: ${error.message}`,
+    );
+  }
+
+  async deleteAllCartProductsWithName(error: Error): Promise<void> {
+    throw new BadRequestException(
+      `failed to delete all cart products with name, Reason: ${error.message}`,
     );
   }
 }

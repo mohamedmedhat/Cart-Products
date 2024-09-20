@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { Product } from 'src/product/entities/product.entity';
 import { Cart } from './entities/cart.entity';
 import { CustomQueries } from 'src/custom/custom.service';
+import { ErrorService } from 'src/custom/errors.service';
 
 @Injectable()
 export class CartProductService {
@@ -12,6 +13,7 @@ export class CartProductService {
     @InjectRepository(CartProduct)
     private readonly _cartProductRepo: Repository<CartProduct>,
     private readonly _customQuery: CustomQueries,
+    private readonly _errorService: ErrorService,
   ) {}
 
   async getCartProductRelations(
@@ -51,7 +53,9 @@ export class CartProductService {
         undefined,
         relations,
       );
-    } catch (error) {}
+    } catch (error) {
+      throw this._errorService.findCartProductById(error);
+    }
   }
 
   async createCartProduct(
@@ -97,7 +101,7 @@ export class CartProductService {
       ]);
       return true;
     } catch (error) {
-      return false;
+      throw this._errorService.deleteCartProduct(error);
     }
   }
 
@@ -108,6 +112,8 @@ export class CartProductService {
         this.deleteCartProductsRelations(cartProducts),
         this._cartProductRepo.remove(cartProducts),
       ]);
-    } catch (error) {}
+    } catch (error) {
+      throw this._errorService.deleteAllCartProductsWithName(error);
+    }
   }
 }
