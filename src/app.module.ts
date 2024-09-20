@@ -12,6 +12,7 @@ import { CustomQueriesModule } from './custom/custom.module';
 import { CartModule } from './cart/cart.module';
 import { Cart } from './cart/entities/cart.entity';
 import { MulterModule } from '@nestjs/platform-express';
+import { CartProduct } from './cart/entities/cart-products.entity';
 
 @Module({
   imports: [
@@ -26,7 +27,7 @@ import { MulterModule } from '@nestjs/platform-express';
         username: config.getOrThrow<string>('RDS_USER_NAME'),
         password: config.getOrThrow<string>('RDS_PASSWORD'),
         database: config.getOrThrow<string>('RDS_DATABASE'),
-        entities: [Product, Cart],
+        entities: [Product, Cart, CartProduct],
         autoLoadEntities: true,
         migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
         seeds: [__dirname + '/seeds/**/*{.ts,.js}'],

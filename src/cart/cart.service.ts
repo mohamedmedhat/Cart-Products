@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsOrder, FindOptionsWhere, Repository } from 'typeorm';
 import { Cart } from './entities/cart.entity';
@@ -6,21 +6,25 @@ import { Product } from 'src/product/entities/product.entity';
 import { CustomQueries } from 'src/custom/custom.service';
 import { ProductService } from 'src/product/product.service';
 import { ErrorService } from 'src/custom/errors.service';
+import { CartProduct } from './entities/cart-products.entity';
+import { CartProductService } from './cart-product.service';
+import { PaginationConst } from 'src/consts/variables.consts';
 
 @Injectable()
 export class CartService {
   constructor(
     @InjectRepository(Cart)
     private _cartRepo: Repository<Cart>,
-    @InjectRepository(Product)
-    private _productRepo: Repository<Product>,
+    @InjectRepository(CartProduct)
+    private readonly _cartProduct: Repository<CartProduct>,
     private readonly _productService: ProductService,
+    private readonly _cartProductService: CartProductService,
     private readonly _customQuery: CustomQueries,
     private readonly _errorService: ErrorService,
   ) {}
 
   async getCartRelations(relations: string[] = []): Promise<string[]> {
-    return ['products', ...relations];
+    return ['cartProducts', ...relations];
   }
 
   async createCart(): Promise<Cart> {
@@ -32,12 +36,12 @@ export class CartService {
     }
   }
 
-  async calculateTotal(cartId: number = 1): Promise<number> {
+  async calculateTotal(cartId: number): Promise<number> {
     try {
       const cart = await this.findCart(cartId);
       let total = 0;
       if (cart) {
-        for (const product of cart.products) {
+        for (const product of cart.cartProducts) {
           const price = product.sale_price || product.price;
           total += price * product.quantity;
         }
@@ -65,14 +69,31 @@ export class CartService {
     }
   }
 
+  async findCartForChecking(
+    cartId: number,
+    order: FindOptionsOrder<Cart> = undefined,
+  ): Promise<Cart> {
+    try {
+      const cart = await this._cartRepo.findOne({ where: { id: cartId } });
+      if (!cart) {
+        return await this.createCart();
+      }
+      return cart;
+    } catch (error) {
+      this._errorService.failedToFindProduct(cartId);
+    }
+  }
+
   async findCarts(
+    page: number = PaginationConst.DEFAULT_PAGE,
+    pageSize: number = PaginationConst.DEFAULT_PAGE_SIZE,
     where?: FindOptionsWhere<Cart>,
     order: FindOptionsOrder<Cart> = undefined,
   ): Promise<[{ cart: Cart; total: number }[], number]> {
     const relations = await this.getCartRelations();
     const [carts, count] = await this._customQuery.findItems(
-      1,
-      30,
+      page,
+      pageSize,
       this._cartRepo,
       where,
       order,
@@ -105,47 +126,60 @@ export class CartService {
     }
   }
 
+  async reflectChangesForAddingProduct(
+    cart: Cart,
+    product: Product,
+    quantity: number,
+  ): Promise<any> {
+    await Promise.all([
+      this._productService.decreaseProductQuantity(quantity, product),
+      this._cartProductService.createCartProduct(quantity, product, cart),
+    ]);
+  }
+
   async addProductToCart(
     cartId: number,
     productId: number,
+    quantity: number,
   ): Promise<{ cart: Cart; totalprice: number }> {
     try {
-      let cart: Cart;
-      const existingCart = await this.findCart(cartId);
-
-      if (!existingCart) {
-        cart = await this.createCart();
-      } else {
-        cart = existingCart;
-      }
-      const product = await this._productService.findProduct(
-        { id: productId },
-        undefined,
-        undefined,
-      );
-      product.cart = cart;
-      await this._productRepo.save(product);
+      const cart = await this.findCartForChecking(cartId);
+      const product = await this._productService.findProductById(productId);
+      await this.reflectChangesForAddingProduct(cart, product, quantity);
       return await this.getCart(cartId);
     } catch (error) {
       throw this._errorService.failedToAddProductToCart(error);
     }
   }
 
+  async reflectChangeForRemovingProduct(
+    cartProductId: number,
+    product: Product,
+    quantity: number,
+  ) {
+    await Promise.all([
+      this._productService.IncreaseProductQuantity(quantity, product),
+      this._cartProductService.deleteCartProduct(cartProductId),
+    ]);
+  }
+
   async removeProductFromCart(
     cartId: number,
-    productId: number,
+    cartProductId: number,
   ): Promise<{ cart: Cart; totalprice: number }> {
     try {
-      const cart = await this.findCart(cartId);
-      const product = await this._productService.findProduct(
-        { id: productId },
-        undefined,
-        undefined,
+      const cartProduct = await this._customQuery.findItem(this._cartProduct, {
+        cart: { id: cartId },
+        id: cartProductId,
+      });
+      const product = await this._productService.findProduct({
+        name: cartProduct.name,
+      });
+      await this.reflectChangeForRemovingProduct(
+        cartProduct.id,
+        product,
+        cartProduct.quantity,
       );
-      if (cart && product) {
-        product.cart = null;
-        await this._productRepo.save(product);
-      }
       return await this.getCart(cartId);
     } catch (error) {
       throw this._errorService.failedToDeleteProductFromCart(error);
