@@ -32,6 +32,9 @@
 $ yarn install
 ```
 
+## add your .env file
+
+
 ## Make app ready to run
 
 ```bash
