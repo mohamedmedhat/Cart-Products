@@ -1,7 +1,7 @@
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { ProductService } from './product.service';
-import { Product } from './entities/product.entity';
-import { PaginatedProducts } from './entities/pagination';
+import { PaginatedProducts } from '../entities/pagination';
+import { Product } from '../entities/product.entity';
+import { ProductService } from '../services/product.service';
 
 @Resolver(() => Product)
 export class ProductResolver {

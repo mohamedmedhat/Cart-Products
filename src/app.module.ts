@@ -6,13 +6,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
-import { ProductModule } from './product/product.module';
-import { Product } from './product/entities/product.entity';
-import { CustomQueriesModule } from './custom/custom.module';
-import { CartModule } from './cart/cart.module';
-import { Cart } from './cart/entities/cart.entity';
 import { MulterModule } from '@nestjs/platform-express';
-import { CartProduct } from './cart/entities/cart-products.entity';
+import { CartModule } from './modules/cart/cart.module';
+import { CartProduct } from './modules/cart/entities/cart-products.entity';
+import { Cart } from './modules/cart/entities/cart.entity';
+import { Product } from './modules/product/entities/product.entity';
+import { ProductModule } from './modules/product/product.module';
 
 @Module({
   imports: [
@@ -53,15 +52,14 @@ import { CartProduct } from './cart/entities/cart-products.entity';
       }),
     }),
     MulterModule.registerAsync({
-      useFactory: async() => ({
+      useFactory: async () => ({
         dest: './uploads',
-        limits:{
-          fileSize: 1000 * 1000 * 10
-        }
-      })
+        limits: {
+          fileSize: 1000 * 1000 * 10,
+        },
+      }),
     }),
     ProductModule,
-    CustomQueriesModule,
     CartModule,
   ],
   controllers: [AppController],

@@ -8,12 +8,12 @@ import {
   UseInterceptors,
   Version,
 } from '@nestjs/common';
-import { ProductService } from './product.service';
-import { CreateProductDto } from './dto/create_product.dto';
-import { Product } from './entities/product.entity';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CustomFilesService } from 'src/custom/custom-files.service';
+import { ProductService } from '../services/product.service';
+import { CreateProductDto } from '../dto/create_product.dto';
+import { Product } from '../entities/product.entity';
+import { FileUploadUtil } from 'src/config/fileUpload.util';
 
 @ApiTags('products')
 @Controller('products')
@@ -55,9 +55,7 @@ export class ProductController {
   })
   @Post('add')
   @Version('1')
-  @UseInterceptors(
-    FileInterceptor('file', CustomFilesService.getMulterOptions()),
-  )
+  @UseInterceptors(FileInterceptor('file', FileUploadUtil.getMulterOptions()))
   async createProduct(
     @UploadedFile() file: Express.Multer.File,
     @Body() data: CreateProductDto,
@@ -103,9 +101,7 @@ export class ProductController {
   })
   @Put('update/:id')
   @Version('1')
-  @UseInterceptors(
-    FileInterceptor('file', CustomFilesService.getMulterOptions()),
-  )
+  @UseInterceptors(FileInterceptor('file', FileUploadUtil.getMulterOptions()))
   async updateProduct(
     @UploadedFile() file: Express.Multer.File,
     @Param('id') id: number,

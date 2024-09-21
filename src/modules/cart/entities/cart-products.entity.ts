@@ -1,5 +1,4 @@
 import { Field, Float, ID, Int, ObjectType } from '@nestjs/graphql';
-import { Product } from 'src/product/entities/product.entity';
 import {
   BeforeInsert,
   BeforeUpdate,
@@ -13,6 +12,7 @@ import {
 } from 'typeorm';
 import { Cart } from './cart.entity';
 import { IsDate } from 'class-validator';
+import { Product } from 'src/modules/product/entities/product.entity';
 
 @ObjectType()
 @Entity({ name: 'cart_products' })

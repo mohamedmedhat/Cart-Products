@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsOrder, FindOptionsWhere, Repository } from 'typeorm';
-import { Cart } from './entities/cart.entity';
-import { Product } from 'src/product/entities/product.entity';
-import { CustomQueries } from 'src/custom/custom.service';
-import { ProductService } from 'src/product/product.service';
-import { ErrorService } from 'src/custom/errors.service';
-import { CartProduct } from './entities/cart-products.entity';
+import { ErrorService } from 'src/common/services/errors.service';
 import { CartProductService } from './cart-product.service';
-import { PaginationConst } from 'src/consts/variables.consts';
+import { PaginationConst } from 'src/common/consts/variables.consts';
+import { Product } from 'src/modules/product/entities/product.entity';
+import { ProductService } from 'src/modules/product/services/product.service';
+import { CartProduct } from '../entities/cart-products.entity';
+import { Cart } from '../entities/cart.entity';
+import { SharedProductService } from 'src/shared/product-shared.service';
+import { CustomQueriesUtils } from 'src/common/utils/sharedQueries.service';
 
 @Injectable()
 export class CartService {
@@ -18,8 +19,9 @@ export class CartService {
     @InjectRepository(CartProduct)
     private readonly _cartProduct: Repository<CartProduct>,
     private readonly _productService: ProductService,
+    private readonly _sharedProductService: SharedProductService,
     private readonly _cartProductService: CartProductService,
-    private readonly _customQuery: CustomQueries,
+    private readonly _customQuery: CustomQueriesUtils,
     private readonly _errorService: ErrorService,
   ) {}
 
@@ -172,7 +174,7 @@ export class CartService {
         cart: { id: cartId },
         id: cartProductId,
       });
-      const product = await this._productService.findProduct({
+      const product = await this._sharedProductService.findProduct({
         name: cartProduct.name,
       });
       await this.reflectChangeForRemovingProduct(
