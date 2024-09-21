@@ -1,9 +1,9 @@
 import { Resolver, Query, Mutation, Args, Int, ID } from '@nestjs/graphql';
-import { CartService } from './cart.service';
-import { Cart } from './entities/cart.entity';
-import { CartWithTotal } from './responses/cart-total';
-import { CartProduct } from './entities/cart-products.entity';
-import { CartProductService } from './cart-product.service';
+import { CartProduct } from '../entities/cart-products.entity';
+import { Cart } from '../entities/cart.entity';
+import { CartWithTotal } from '../responses/cart-total';
+import { CartProductService } from '../services/cart-product.service';
+import { CartService } from '../services/cart.service';
 
 @Resolver(() => Cart)
 export class CartResolver {

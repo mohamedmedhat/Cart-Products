@@ -1,9 +1,7 @@
-import { Injectable } from '@nestjs/common';
 import { diskStorage } from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 
-@Injectable()
-export class CustomFilesService {
+export class FileUploadUtil {
   static getMulterOptions() {
     return {
       storage: diskStorage({
