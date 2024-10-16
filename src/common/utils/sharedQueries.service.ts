@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { FindOptionsOrder, FindOptionsWhere, Repository } from 'typeorm';
 
 @Injectable()
-export class CustomQueries {
+export class CustomQueriesUtils {
   async findItem<T>(
     repo: Repository<T>,
     where?: FindOptionsWhere<T>,

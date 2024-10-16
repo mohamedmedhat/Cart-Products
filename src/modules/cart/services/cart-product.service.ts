@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CartProduct } from './entities/cart-products.entity';
 import { Repository } from 'typeorm';
-import { Product } from 'src/product/entities/product.entity';
-import { Cart } from './entities/cart.entity';
-import { CustomQueries } from 'src/custom/custom.service';
-import { ErrorService } from 'src/custom/errors.service';
+import { ErrorService } from 'src/common/services/errors.service';
+import { Product } from 'src/modules/product/entities/product.entity';
+import { CartProduct } from '../entities/cart-products.entity';
+import { Cart } from '../entities/cart.entity';
+import { CustomQueriesUtils } from 'src/common/utils/sharedQueries.service';
 
 @Injectable()
 export class CartProductService {
   constructor(
     @InjectRepository(CartProduct)
     private readonly _cartProductRepo: Repository<CartProduct>,
-    private readonly _customQuery: CustomQueries,
+    private readonly _customQuery: CustomQueriesUtils,
     private readonly _errorService: ErrorService,
   ) {}
 
